@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Griffon Ultra 3D - Stable Pro</title>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<!-- PageFlip -->
+<script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
+
+<style>
+:root {
+    --accent: #f1c40f;
+    --bg: #000;
+    --sidebar-bg: #1a1a1a;
+    --success: #27ae60;
+}
+
+/* GENERAL */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+    color: white;
+    font-family: sans-serif;
+}
+
+/* HEADER */
+.header {
+    padding: 10px 15px;
+    background: #222;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    border: none;
+    color: white;
+}
+
+.upload-btn { background: var(--success); }
+.fs-btn { background: #444; }
+.note-btn { background: var(--accent); color: #000; }
+.download-btn { background: #1e90ff; }
+
+/* LAYOUT */
+.main-layout {
+    display: flex;
+    height: calc(100% - 50px);
+    overflow: hidden;
+}
+
+#library-sidebar {
+    width: 280px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid #333;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+    #library-sidebar { display: none; }
+}
+
+.pdf-item {
+    background: #333;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    border-left: 0 solid var(--accent);
+    transition: 0.2s;
+}
+
+.pdf-item:hover {
+    background: #444;
+    border-left: 3px solid var(--accent);
+}
+
+.pdf-item.active {
+    background: #444;
+    border-left: 3px solid var(--success);
+    font-weight: bold;
+}
+
+/* VIEWER */
+#viewer-content {
+    flex: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0a0a0a;
+    overflow: hidden;
+}
+
+#flipbook-container {
+    width: 100%;
+    height: 100%;
+}
+
+#flipbook-container-inner {
+    width: 100%;
+    height: 100%;
+    transform-origin: center center;
+    transition: transform 0.2s ease-out;
+}
+
+/* STATUS OVERLAY */
+#status-overlay {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    padding: 5px 20px;
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--accent);
+    z-index: 1000;
+    border: 1px solid #444;
+}
+
+/* DOWNLOAD BUTTON */
+#download-button {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #1e90ff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    z-index: 1000;
+    display: none;
+}
+
+/* LOADING ANIMATION */
+#loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border: 6px solid #444;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+    z-index: 2000;
+}
+
+@keyframes spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <h2 style="margin:0; font-size: 14px;">GRIFFON 3D DOCS</h2>
+
+    <div class="controls-group">
+        <button class="btn fs-btn" onclick="toggleFullscreen()">🖥 Fullscreen</button>
+        <button class="btn fs-btn" onclick="zoomOut()">➖ Zoom out</button>
+        <button class="btn fs-btn" onclick="zoomIn()">➕ Zoom in</button>
+        <span class="btn note-btn">📝 Note</span>
+        <label for="upload" class="btn upload-btn">📁 PDF</label>
+        <input type="file" id="upload" accept="application/pdf" style="display:none">
+    </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+    <!-- SIDEBAR -->
+    <div id="library-sidebar">
+        <h3 style="color: var(--accent); margin-top: 0; font-size: 13px;">DOCUMENTS</h3>
+
+        <div id="pdf-list">
+            <div class="pdf-item" onclick="loadRemotePDF('woodmax.pdf', 'Wood Max Range')">Wood Max Range</div>
+            <div class="pdf-item" onclick="loadRemotePDF('connection.pdf', 'Connection Techniques')">Connection Techniques</div>
+            <div class="pdf-item" onclick="loadRemotePDF('construmax.pdf', 'Constru Max Express')">Constru Max Express</div>
+            <div class="pdf-item" onclick="loadRemotePDF('epdm.pdf', 'EPDM Max')">EPDM Max</div>
+            <div class="pdf-item" onclick="loadRemotePDF('ips300.pdf', 'IPS-300 Impregnation')">IPS-300 Impregnation</div>
+            <div class="pdf-item" onclick="loadRemotePDF('polymax.pdf', 'Poly Max Family')">Poly Max Family</div>
+            <div class="pdf-item" onclick="loadRemotePDF('panelmax.pdf', 'Panel Max Adhesives')">Panel Max Adhesives</div>
+            <div class="pdf-item" onclick="loadRemotePDF('polymax.pdf', 'Poly Max Range Discovery')">Poly Max Range Discovery</div>
+            <div class="pdf-item" onclick="loadRemotePDF('polymaxsealant.pdf', 'Poly Max Sealant')">Poly Max Sealant</div>
+            <div class="pdf-item" onclick="loadRemotePDF('catalog.pdf', 'General Catalog')">General Catalog</div>
+            <div class="pdf-item" onclick="loadRemotePDF('fibre.pdf', 'Fibre Reinforcement')">Fibre Reinforcement</div>
+            <div class="pdf-item" onclick="loadRemotePDF('hbs200.pdf', 'HBS-200 Sealant')">HBS-200 Sealant</div>
+        </div>
+    </div>
+
+    <!-- VIEWER -->
+    <div id="viewer-content">
+        <div id="loading-spinner"></div>
+        <div id="status-overlay">System Ready</div>
+
+        <div id="download-button" onclick="downloadCurrentPDF()">⬇ Download PDF</div>
+
+        <div id="flipbook-container">
+            <div id="flipbook-container-inner"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* PDF.js setup with fallback */
+const pdfjsLib =
+    window.pdfjsLib ||
+    window['pdfjs-dist/build/pdf'] ||
+    window.pdfjsDistBuildPdf;
+
+if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+const innerContainer = document.getElementById("flipbook-container-inner");
+const statusEl = document.getElementById("status-overlay");
+const spinner = document.getElementById("loading-spinner");
+const downloadBtn = document.getElementById("download-button");
+
+let flipbook = null;
+let isBusy = false;
+let zoomLevel = 1;
+let currentPDF = null;
+
+/* ZOOM */
+function applyZoom() {
+    innerContainer.style.transform = `scale(${zoomLevel})`;
+}
+
+function zoomIn() {
+    zoomLevel = Math.min(zoomLevel + 0.1, 2);
+    applyZoom();
+}
+
+function zoomOut() {
+    zoomLevel = Math.max(zoomLevel - 0.1, 0.6);
+    applyZoom();
+}
+
+/* SPINNER */
+function showSpinner() { spinner.style.display = "block"; }
+function hideSpinner() { spinner.style.display = "none"; }
+
+/* DOWNLOAD */
+function downloadCurrentPDF() {
+    if (!currentPDF) return;
+    window.open(currentPDF, '_blank');
+}
+
+/* LOAD REMOTE PDF */
+async function loadRemotePDF(fileName, title) {
+    if (isBusy) return;
+    isBusy = true;
+
+    currentPDF = fileName;
+    downloadBtn.style.display = "block";
+
+    showSpinner();
+    statusEl.innerText = "Fetching " + title + "...";
+
+    document.querySelectorAll('.pdf-item').forEach(el => el.classList.remove('active'));
+    const clickedItem = [...document.querySelectorAll('.pdf-item')]
+        .find(el => el.innerText === title);
+    if (clickedItem) clickedItem.classList.add('active');
+
+    try {
+        const response = await fetch(fileName);
+        if (!response.ok) throw new Error("Connection failed");
+
+        const buffer = await response.arrayBuffer();
+        await processPDF(buffer);
+
+    } catch (err) {
+        statusEl.innerText = "PDF Error";
+        hideSpinner();
+        isBusy = false;
+    }
+}
+
+/* LOCAL UPLOAD */
+document.getElementById("upload").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        currentPDF = null;
+        downloadBtn.style.display = "none";
+
+        showSpinner();
+        const buffer = await file.arrayBuffer();
+        await processPDF(buffer);
+        e.target.value = "";
+    }
+});
+
+/* PROCESS PDF → IMAGES → 3D FLIPBOOK */
+async function processPDF(arrayBuffer) {
+    statusEl.innerText = "Rendering Pages...";
+
+    if (flipbook) {
+        try { flipbook.destroy(); } catch(e) {}
+        flipbook = null;
+    }
+
+    innerContainer.innerHTML = "";
+
+    try {
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const totalPages = pdf.numPages;
+
+        const pageImages = [];
+
+        /* COVER GENERATOR */
+        const coverCanvas = document.createElement("canvas");
+        coverCanvas.width = 1200;
+        coverCanvas.height = 1600;
+        const cctx = coverCanvas.getContext("2d");
+
+        const grad = cctx.createLinearGradient(0, 0, 0, coverCanvas.height);
+        grad.addColorStop(0, "#111");
+        grad.addColorStop(1, "#000");
+        cctx.fillStyle = grad;
+        cctx.fillRect(0, 0, coverCanvas.width, coverCanvas.height);
+
+        cctx.fillStyle = "#f1c40f";
+        cctx.font = "bold 80px sans-serif";
+        cctx.textAlign = "center";
+        cctx.fillText("GRIFFON 3D DOCS", coverCanvas.width / 2, coverCanvas.height / 2 - 40);
+
+        cctx.fillStyle = "#ccc";
+        cctx.font = "32px sans-serif";
+        cctx.fillText("Interactive Product Library", coverCanvas.width / 2, coverCanvas.height / 2 + 40);
+
+        pageImages.push(coverCanvas.toDataURL("image/webp", 0.9));
+
+        /* RENDER PDF PAGES */
+        for (let i = 1; i <= totalPages; i++) {
+            statusEl.innerText = `HD Processing: ${i}/${totalPages}`;
+
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 1.5 });
+
+            const canvas = document.createElement("canvas");
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            await page.render({
+                canvasContext: canvas.getContext("2d"),
+                viewport: viewport
+            }).promise;
+
+            pageImages.push(canvas.toDataURL("image/webp", 0.8));
+        }
+
+        statusEl.innerText = "Building 3D Model...";
+
+        const firstPage = await pdf.getPage(1);
+        const firstVP = firstPage.getViewport({ scale: 1.5 });
+
+        flipbook = new PageFlip(innerContainer, {
+            width: firstVP.width,
+            height: firstVP.height,
+            size: "stretch",
+            showCover: true,
+            usePortrait: false,
+            drawShadow: true,
+            maxShadowOpacity: 0.8,
+            flippingTime: 950,
+            autoSize: true,
+            swipeDistance: 15,
+            showPageCorners: true
+        });
+
+        flipbook.loadFromImages(pageImages);
+
+        flipbook.on('flip', () => {
+            const audio = new Audio("sound/flip.mp3");
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        });
+
+        statusEl.innerText = "3D View Ready";
+        hideSpinner();
+        isBusy = false;
+
+    } catch (err) {
+        statusEl.innerText = "PDF Error";
+        hideSpinner();
+        isBusy = false;
+    }
+}
+
+/* FULLSCREEN */
+function toggleFullscreen() {
+    const elem = document.getElementById("viewer-content");
+
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen?.();
+    } else {
+        document.exitFullscreen?.();
+    }
+}
+</script>
+
+</body>
+</html>
