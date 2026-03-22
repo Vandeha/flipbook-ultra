@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flipbook Ultra</title>
+
+    <!-- PageFlip CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip/dist/css/page-flip.css">
+
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: #1a1a1a;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #333;
+        }
+
+        #sidebar h2 {
+            margin-top: 0;
+            font-size: 20px;
+            color: #00aaff;
+        }
+
+        #sidebar button {
+            width: 100%;
+            padding: 12px;
+            margin: 6px 0;
+            background: #222;
+            color: white;
+            border: 1px solid #333;
+            cursor: pointer;
+            text-align: left;
+            font-size: 15px;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+
+        #sidebar button:hover {
+            background: #00aaff;
+            color: black;
+        }
+
+        #viewer {
+            margin-left: 260px;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Spinner */
+        #loadingSpinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #444;
+            border-top: 6px solid #00aaff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+            position: absolute;
+            z-index: 30;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #flipbook {
+            width: 90%;
+            height: 90%;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            border-radius: 6px;
+            transform: translateZ(0);
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 20;
+        }
+
+        #controls button {
+            padding: 10px 16px;
+            background: #00aaff;
+            border: none;
+            border-radius: 4px;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #controls button:hover {
+            background: #0088cc;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Documenten</h2>
+        <button onclick="loadPDF('woodmax.pdf')">Wood Max Range</button>
+        <button onclick="loadPDF('connection.pdf')">Connection Techniques</button>
+        <button onclick="loadPDF('construmax.pdf')">Constru Max Express</button>
+        <button onclick="loadPDF('epdm.pdf')">EPDM Max</button>
+        <button onclick="loadPDF('ips300.pdf')">IPS‑300</button>
+        <button onclick="loadPDF('polymax.pdf')">Poly Max Family</button>
+        <button onclick="loadPDF('polymaxsealant.pdf')">Poly Max Sealant</button>
+        <button onclick="loadPDF('panelmax.pdf')">Panel Max</button>
+        <button onclick="loadPDF('fibre.pdf')">Fibre Reinforcement</button>
+        <button onclick="loadPDF('hbs200.pdf')">HBS‑200</button>
+        <button onclick="loadPDF('catalog.pdf')">Catalog</button>
+        <button onclick="loadPDF('catalogue.pdf')">Catalogue</button>
+    </div>
+
+    <div id="viewer">
+        <div id="loadingSpinner"></div>
+        <div id="flipbook"></div>
+
+        <div id="controls">
+            <button onclick="zoomIn()">Zoom +</button>
+            <button onclick="zoomOut()">Zoom −</button>
+            <button onclick="toggleFullscreen()">Fullscreen</button>
+            <button onclick="downloadPDF()">Download PDF</button>
+        </div>
+    </div>
+
+    <!-- PageFlip JS -->
+    <script src="page-flip.browser.min.js"></script>
+
+    <!-- PDF.js -->
+    <script src="pdf.js"></script>
+    <script src="pdf.worker.js"></script>
+
+    <script>
+        let flipbook = null;
+        let currentScale = 1;
+        let currentPDF = null;
+
+        function initFlipbook() {
+            const viewer = document.getElementById("flipbook");
+
+            if (flipbook) {
+                flipbook.destroy();
+            }
+
+            flipbook = new St.PageFlip(viewer, {
+                width: 800,
+                height: 1100,
+                size: "stretch",
+                minWidth: 300,
+                maxWidth: 2000,
+                minHeight: 400,
+                maxHeight: 3000,
+                maxShadowOpacity: 0.5,
+                showCover: true,
+                mobileScrollSupport: true,
+                usePortrait: false,
+                flippingTime: 600,
+                drawShadow: true,
+                autoSize: true,
+                clickEventForward: true,
+                swipeDistance: 30
+            });
+        }
+
+        function zoomIn() {
+            currentScale += 0.1;
+            document.getElementById("flipbook").style.transform = `scale(${currentScale})`;
+        }
+
+        function zoomOut() {
+            currentScale = Math.max(0.5, currentScale - 0.1);
+            document.getElementById("flipbook").style.transform = `scale(${currentScale})`;
+        }
+
+        function toggleFullscreen() {
+            const elem = document.documentElement;
+            if (!document.fullscreenElement) {
+                elem.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function downloadPDF() {
+            if (!currentPDF) {
+                alert("Geen PDF geladen.");
+                return;
+            }
+            const link = document.createElement("a");
+            link.href = currentPDF;
+            link.download = currentPDF;
+            link.click();
+        }
+
+        async function loadPDF(pdfFile) {
+            currentPDF = pdfFile;
+            const spinner = document.getElementById("loadingSpinner");
+            const viewer = document.getElementById("flipbook");
+
+            spinner.style.display = "block";
+            viewer.innerHTML = "";
+            currentScale = 1;
+            viewer.style.transform = "scale(1)";
+            initFlipbook();
+
+            try {
+                const pdf = await pdfjsLib.getDocument(pdfFile).promise;
+
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 1.5 });
+
+                    const canvas = document.createElement("canvas");
+                    const context = canvas.getContext("2d");
+
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    flipbook.loadFromImages([canvas.toDataURL()]);
+                }
+
+            } catch (error) {
+                console.error("PDF kon niet geladen worden:", error);
+                alert("Er ging iets mis bij het laden van de PDF.");
+            }
+
+            spinner.style.display = "none";
+        }
+
+        // Fallback als PDF.js niet geladen is
+        if (typeof pdfjsLib === "undefined") {
+            document.getElementById("viewer").innerHTML = `
+                <div style="color:white; text-align:center; padding:40px;">
+                    <h2>PDF weergave niet beschikbaar</h2>
+                    <p>Uw browser ondersteunt geen PDF‑weergave. Download het document om het te bekijken.</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
